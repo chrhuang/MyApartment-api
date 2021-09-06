@@ -1,9 +1,9 @@
 class Api::V1::ApartmentsController < Api::V1::BaseController
-  acts_as_token_authentication_handler_for User, except: %i[index show]
+  acts_as_token_authentication_handler_for User, except: %i[]
   before_action :set_apartment, only: %i[show destroy]
 
   def index
-    @apartments = policy_scope(Apartment)
+    @apartments = policy_scope(current_user.apartments) if signed_in?
   end
 
   def show; end
@@ -37,7 +37,12 @@ class Api::V1::ApartmentsController < Api::V1::BaseController
 
   def set_apartment
     @apartment = Apartment.find(params[:id])
-    authorize @apartment  # For Pundit
+    if @apartment.user == current_user
+      authorize @apartment  # For Pundit
+    else
+      render json: { errors: "You can't access to this apartment" },
+             status: :unprocessable_entity
+    end
   end
 
   def apartment_params
